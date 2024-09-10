@@ -20,8 +20,6 @@ class General:
         
     def load(self):
         # load data about existing transactions from local file
-        # data file has date, transaction full name, category, spent, received
-
         dataFile = "data.csv"
         # if no data.csv file, create one
         if not os.path.isfile(dataFile):
@@ -56,13 +54,13 @@ class General:
         
         # pull transactions from lastDate from df_data, remove Category col and remove duplicates. This prevents removing dups on entire data
         df_data_last_day = self.df_data[self.df_data['Date'] == self.lastTransDate].drop(columns=['Category'])
-        set_of_hashes = set(self.hash_row(r) for _, r in df_data_last_day.iterrows())
+        set_of_hashes = set(self.hashRow(r) for _, r in df_data_last_day.iterrows())
         
         for i in range(len(df_filtered)-1, -1, -1):
             row = df_filtered.iloc[i]
             currDate = row['Date']
             if currDate == self.lastTransDate:
-                if self.hash_row(row) in set_of_hashes:
+                if self.hashRow(row) in set_of_hashes:
                     print(f"dropping row {i}")
                     df_filtered.drop(i, inplace=True)
             elif currDate > self.lastTransDate:
@@ -70,7 +68,7 @@ class General:
             
         return df_filtered
     
-    def hash_row(self, row):
+    def hashRow(self, row):
         row_string = row.to_string(index=False)
         return hashlib.md5(row_string.encode()).hexdigest()
     
