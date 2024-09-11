@@ -4,6 +4,7 @@ import csv
 import pandas as pd
 from datetime import datetime
 import hashlib
+import json
 
 class General:
     def __init__(self):
@@ -11,12 +12,18 @@ class General:
         self.importedColumnNames = ["Date", "Transaction", "Amount Spent", "Amount Received"]
         
         self.df_data = None
+        self.cat_map = {}
         self.lastTransDate = datetime(1900, 1, 1) # default old date
+        
         self.load()
+        self.load_category_map()
         
     def load_category_map(self):
         # load the map of known categories and common transactions per category from json file
-        pass
+        cat_map_file = "known_transactions.json"
+        
+        with open(cat_map_file, 'r') as f:
+            self.cat_map = json.load(f)
         
     def load(self):
         # load data about existing transactions from local file
@@ -34,7 +41,7 @@ class General:
             self.lastTransDate = self.df_data.iloc[0,0]
         
         # print(self.df_data.head())
-        print(self.lastTransDate)
+        print(f"Last date saved: {self.lastTransDate}")
         
     def readDate(self, dateString):
         return datetime.strptime(dateString, "%Y-%m-%d")
@@ -61,7 +68,6 @@ class General:
             currDate = row['Date']
             if currDate == self.lastTransDate:
                 if self.hashRow(row) in set_of_hashes:
-                    print(f"dropping row {i}")
                     df_filtered.drop(i, inplace=True)
             elif currDate > self.lastTransDate:
                 break
@@ -76,12 +82,30 @@ class General:
         # go through all entries and auto-categorize all the uncategorized entries
         
         # add a category column
+        for i, row in df_new.iterrows():
+            res, found = self.search_cat_map(row['Transaction'])
+            if found:
+                df_new.at[i,'Category'] = res
         
         return df_new
     
+    def search_cat_map(self, title):
+        for cat, items in self.cat_map.items():
+            for item in items:
+                if item in title:
+                    return (cat, True)
+        return ("no_cat", False)
+                
     def saveNewTransactions(self, df_new):
         self.df_data = pd.concat([df_new, self.df_data], ignore_index=True)
         self.df_data.to_csv("data.csv",index=False)
+        
+    def catOnlyUncat(self):
+        # categorize every uncategorized transaction
+        pass
+    
+    def reCatAll(self):
+        pass
     
     def showStats(self):
         # display counts of 
